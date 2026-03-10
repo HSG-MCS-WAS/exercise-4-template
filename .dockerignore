@@ -1,0 +1,4 @@
+build/
+.gradle/
+log/
+wot-servient/node_modules/

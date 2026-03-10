@@ -1,0 +1,40 @@
+# Gradle
+.gradle/
+build/
+bin/
+
+# IDE
+.idea/
+.classpath
+.project
+.settings/
+*.iml
+
+# VS Code (keep .vscode/tasks.json and launch.json)
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Logs
+log/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (wot-servient)
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# Submission artifacts
+submission-exercise-4.zip
+submission-exercise-4-*.html
+
+# JaCaMo runtime
+*.log
+
+# Local reference repo
+jacamo-by-exercises/

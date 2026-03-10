@@ -1,0 +1,34 @@
+/*
+  JaCaMo Project File - Task 3: Personal Assistant
+  This file defines the initial state of the Multi-Agent System.
+  ThingArtifacts are pre-configured — each one wraps a W3C WoT Thing Description.
+*/
+
+mas wake_up_mas {
+
+    agent personal_assistant : task3/personal_assistant.asl {
+        focus: smart_room.wristband
+        focus: smart_room.event_portal
+        focus: smart_room.lights
+        focus: smart_room.blinds
+        focus: smart_room.mattress
+        focus: smart_room.scheduler
+    }
+    agent barista : task3/barista.asl {
+        focus: smart_room.coffee_machine
+        focus: smart_room.barista_scheduler
+        focus: smart_room.scheduler
+    }
+
+    workspace smart_room {
+        artifact wristband: org.hyperagents.jacamo.artifacts.wot.ThingArtifact("http://localhost:1181/tds/wristband.ttl")
+        artifact event_portal: org.hyperagents.jacamo.artifacts.wot.ThingArtifact("http://localhost:1181/tds/event-portal.ttl")
+        artifact lights: org.hyperagents.jacamo.artifacts.wot.ThingArtifact("http://localhost:1181/tds/lights.ttl")
+        artifact blinds: org.hyperagents.jacamo.artifacts.wot.ThingArtifact("http://localhost:1181/tds/blinds.ttl")
+        artifact mattress: org.hyperagents.jacamo.artifacts.wot.ThingArtifact("http://localhost:1181/tds/mattress.ttl")
+        artifact coffee_machine: org.hyperagents.jacamo.artifacts.wot.ThingArtifact("http://localhost:1181/tds/coffee-machine.ttl")
+        artifact scheduler: task2.SchedulingArtifact()
+        artifact barista_scheduler: task2.SchedulingArtifact()
+    }
+
+}

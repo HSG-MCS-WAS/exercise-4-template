@@ -1,0 +1,27 @@
+@prefix td: <https://www.w3.org/2019/wot/td#> .
+@prefix hctl: <https://www.w3.org/2019/wot/hypermedia#> .
+@prefix wotsec: <https://www.w3.org/2019/wot/security#> .
+@prefix was: <https://was-course.interactions.ics.unisg.ch/wake-up-ontology#> .
+@prefix js: <https://www.w3.org/2019/wot/json-schema#> .
+@prefix htv: <http://www.w3.org/2011/http#> .
+
+<urn:event-portal> a td:Thing, was:EventPortal;
+  td:title "An event portal that can be used for managing a user's events";
+  td:hasSecurityConfiguration [ a wotsec:NoSecurityScheme
+    ];
+  td:hasPropertyAffordance [ a td:PropertyAffordance, was:ReadUpcomingEvent, js:StringSchema;
+      td:name "Read upcoming event";
+      td:hasForm [
+          htv:methodName "GET";
+          hctl:hasTarget <http://localhost:1180/event-portal/properties/upcoming>;
+          hctl:forContentType "application/json";
+          hctl:hasOperationType td:readProperty
+        ], [
+          htv:methodName "GET";
+          hctl:hasTarget <http://localhost:1180/event-portal/properties/upcoming/observable>;
+          hctl:forContentType "application/json";
+          hctl:hasOperationType td:observeProperty;
+          hctl:forSubProtocol "longpoll"
+        ];
+      td:isObservable true
+    ] .

@@ -1,0 +1,12 @@
+/*
+
+    JaCaMo Project File - Warm-up Exercise
+
+    This file defines the initial state of the MAS (initial agents, environment, organisation, ....)
+
+*/
+
+mas simple_mas {
+
+    agent simple_agent : warmup/simple_agent.asl {}
+}

@@ -1,0 +1,39 @@
+@prefix td: <https://www.w3.org/2019/wot/td#> .
+@prefix hctl: <https://www.w3.org/2019/wot/hypermedia#> .
+@prefix wotsec: <https://www.w3.org/2019/wot/security#> .
+@prefix was: <https://was-course.interactions.ics.unisg.ch/wake-up-ontology#> .
+@prefix js: <https://www.w3.org/2019/wot/json-schema#> .
+@prefix htv: <http://www.w3.org/2011/http#> .
+
+<urn:coffee-machine> a td:Thing, was:CoffeeMachine;
+  td:title "A coffee machine that can grind, brew, and serve coffee";
+  td:hasSecurityConfiguration [ a wotsec:NoSecurityScheme
+    ];
+  td:hasActionAffordance [ a td:ActionAffordance, was:SetState;
+      td:name "Set the coffee machine state";
+      td:hasForm [
+          htv:methodName "PUT";
+          hctl:hasTarget <http://localhost:1180/coffee-machine/properties/state>;
+          hctl:forContentType "application/json";
+          hctl:hasOperationType td:invokeAction
+        ];
+      td:hasInputSchema [ a js:StringSchema, was:CoffeeMachineState;
+          js:enum "idle", "grinding", "brewing", "ready", "cleaning"
+        ]
+    ];
+  td:hasPropertyAffordance [ a td:PropertyAffordance, was:ReadState, js:StringSchema;
+      td:name "Read the coffee machine state";
+      td:hasForm [
+          htv:methodName "GET";
+          hctl:hasTarget <http://localhost:1180/coffee-machine/properties/state>;
+          hctl:forContentType "application/json";
+          hctl:hasOperationType td:readProperty
+        ], [
+          htv:methodName "GET";
+          hctl:hasTarget <http://localhost:1180/coffee-machine/properties/state/observable>;
+          hctl:forContentType "application/json";
+          hctl:hasOperationType td:observeProperty;
+          hctl:forSubProtocol "longpoll"
+        ];
+      td:isObservable true
+    ] .

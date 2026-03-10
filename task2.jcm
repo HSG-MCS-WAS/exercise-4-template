@@ -1,0 +1,22 @@
+/*
+  JaCaMo Project File - Task 2: Train Scheduling
+  This file defines the initial state of the Multi-Agent System.
+  The SchedulingArtifact is shared among all agents.
+*/
+
+mas train_mas {
+
+    agent train_operator : task2/train_operator.asl {
+        join: station
+    }
+    agent train_driver : task2/train_driver.asl {
+        join: station
+    }
+    agent train_controller : task2/train_controller.asl {
+        join: station
+    }
+
+    workspace station {
+    }
+
+}

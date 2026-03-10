@@ -1,0 +1,100 @@
+/*
+   Gradle build file for JaCaMo Application
+*/
+
+defaultTasks 'run'
+
+apply plugin: 'java'
+
+version '1.1'
+group   'org.jacamo'
+
+repositories {
+    mavenCentral()
+    maven { url "https://raw.githubusercontent.com/jacamo-lang/mvn-repo/master" }
+    maven { url "https://repo.gradle.org/gradle/libs-releases" }
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    //TODO Make jacamo official versions when compatible with JDK 21
+    implementation 'com.github.GiugAles:jacamo:SS2025'
+    //TODO Make jacamo-hypermedia official versions when compatible with JDK 21
+    implementation 'com.github.GiugAles:jacamo-hypermedia:SS2025-1'
+    implementation 'com.github.Interactions-HSG:wot-td-java:master-SNAPSHOT'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/env'
+            srcDir 'src/agt'
+            srcDir 'src/org'
+            srcDir 'src/int'
+            srcDir 'src/java'
+        }
+        resources {
+            srcDir 'src/resources'
+        }
+    }
+}
+
+task warmup (type: JavaExec, dependsOn: 'classes') {
+    description 'runs the Warm-up exercise (simple agent)'
+    group ' JaCaMo'
+    doFirst {
+        mkdir 'log'
+    }
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'warmup.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
+task warmup_solution (type: JavaExec, dependsOn: 'classes') {
+    description 'runs the Warm-up exercise solution'
+    group ' JaCaMo'
+    doFirst {
+        mkdir 'log'
+    }
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'warmup_solution.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
+task task1 (type: JavaExec, dependsOn: 'classes') {
+    description 'runs Task 1 (illuminance controller)'
+    group ' JaCaMo'
+    doFirst {
+        mkdir 'log'
+    }
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'task1.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
+task task2 (type: JavaExec, dependsOn: 'classes') {
+    description 'runs Task 2 (train scheduling with SchedulingArtifact)'
+    group ' JaCaMo'
+    doFirst {
+        mkdir 'log'
+    }
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'task2.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
+task task3 (type: JavaExec, dependsOn: 'classes') {
+    description 'runs Task 3 (personal assistant with WoT ThingArtifacts)'
+    group ' JaCaMo'
+    doFirst {
+        mkdir 'log'
+    }
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'task3.jcm'
+    classpath sourceSets.main.runtimeClasspath
+}
+
+clean {
+    delete 'bin'
+    delete 'build'
+}

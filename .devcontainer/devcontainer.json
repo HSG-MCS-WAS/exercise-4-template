@@ -1,0 +1,38 @@
+{
+  "name": "Exercise 4 - BDI Agents",
+  "build": {
+    "dockerfile": "../Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-gradle",
+        "tabajara-krausburg.jacamo4code"
+      ]
+    }
+  },
+  "forwardPorts": [1180, 1181, 3271, 3272, 3273, 5000, 6080],
+  "portsAttributes": {
+    "3271": {
+      "label": "Moise Organisation Inspector"
+    },
+    "3272": {
+      "label": "Jason Mind Inspector"
+    },
+    "3273": {
+      "label": "CArtAgO Inspector"
+    },
+    "6080": {
+      "label": "Desktop (VNC)",
+      "onAutoForward": "openBrowser"
+    },
+    "5000": {
+      "label": "WoT Dashboard"
+    }
+  },
+  "containerEnv": {
+    "DISPLAY": ":1"
+  },
+  "postStartCommand": "bash start-vnc.sh; cd wot-servient && npm install && npm start"
+}

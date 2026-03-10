@@ -1,0 +1,39 @@
+@prefix td: <https://www.w3.org/2019/wot/td#> .
+@prefix hctl: <https://www.w3.org/2019/wot/hypermedia#> .
+@prefix wotsec: <https://www.w3.org/2019/wot/security#> .
+@prefix was: <https://was-course.interactions.ics.unisg.ch/wake-up-ontology#> .
+@prefix js: <https://www.w3.org/2019/wot/json-schema#> .
+@prefix htv: <http://www.w3.org/2011/http#> .
+
+<urn:lights> a td:Thing, was:Lights;
+  td:title "A set of lights in a room that can be turned on or off";
+  td:hasSecurityConfiguration [ a wotsec:NoSecurityScheme
+    ];
+  td:hasActionAffordance [ a td:ActionAffordance, was:SetState;
+      td:name "Set the lights state";
+      td:hasForm [
+          htv:methodName "PUT";
+          hctl:hasTarget <http://localhost:1180/lights/properties/state>;
+          hctl:forContentType "application/json";
+          hctl:hasOperationType td:invokeAction
+        ];
+      td:hasInputSchema [ a js:StringSchema, was:LightsState;
+          js:enum "off", "on"
+        ]
+    ];
+  td:hasPropertyAffordance [ a td:PropertyAffordance, was:ReadState, js:StringSchema;
+      td:name "Read the lights state";
+      td:hasForm [
+          htv:methodName "GET";
+          hctl:hasTarget <http://localhost:1180/lights/properties/state>;
+          hctl:forContentType "application/json";
+          hctl:hasOperationType td:readProperty
+        ], [
+          htv:methodName "GET";
+          hctl:hasTarget <http://localhost:1180/lights/properties/state/observable>;
+          hctl:forContentType "application/json";
+          hctl:hasOperationType td:observeProperty;
+          hctl:forSubProtocol "longpoll"
+        ];
+      td:isObservable true
+    ] .

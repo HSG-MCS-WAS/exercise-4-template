@@ -1,0 +1,10 @@
+/*
+
+    JaCaMo Project File - Warm-up Exercise Solution
+
+*/
+
+mas simple_mas {
+
+    agent simple_agent : warmup/simple_agent_solution.asl {}
+}

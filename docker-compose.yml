@@ -1,0 +1,21 @@
+services:
+  jacamo:
+    build: .
+    volumes:
+      - ./src:/app/src
+      - ./warmup.jcm:/app/warmup.jcm
+      - ./warmup_solution.jcm:/app/warmup_solution.jcm
+      - ./task1.jcm:/app/task1.jcm
+      - ./task2.jcm:/app/task2.jcm
+      - ./task3.jcm:/app/task3.jcm
+    ports:
+      - "1180:1180"
+      - "1181:1181"
+      - "3271:3271"
+      - "3272:3272"
+      - "3273:3273"
+      - "5000:5000"
+      - "6080:6080"
+    stdin_open: true
+    tty: true
+    entrypoint: ["/bin/bash", "-c", "./start-vnc.sh && cd wot-servient && npm install && node server.js & cd /app && sleep 2 && ./gradlew --no-daemon ${TASK:-warmup} --console=plain"]

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WoT Smart Room</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        swiss: { green: '#00A86B', dark: '#006B45', light: '#00D486' },
+      },
+      fontFamily: {
+        sans: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['SF Mono', 'Fira Code', 'monospace'],
+      },
+    },
+  },
+}
+</script>
+<style>
+  .transition-svg { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+  @keyframes zzz {
+    0%, 100% { opacity: 0.2; transform: translateY(0); }
+    50% { opacity: 0.8; transform: translateY(-6px); }
+  }
+  #z1 { animation: zzz 2.4s ease-in-out infinite; }
+  #z2 { animation: zzz 2.4s ease-in-out 0.4s infinite; }
+  #z3 { animation: zzz 2.4s ease-in-out 0.8s infinite; }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .led-blink { animation: blink 1.8s ease-in-out infinite; }
+  @keyframes vibrate {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+  .vibrating { animation: vibrate 0.15s linear infinite; }
+  .log-enter { animation: slideIn 0.2s ease-out; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body class="bg-black text-white font-sans min-h-screen flex flex-col items-center p-8">
+
+  <!-- Header -->
+  <header class="w-full max-w-4xl mb-6">
+    <div class="flex items-center gap-3 mb-1">
+      <div class="w-3 h-3 rounded-full bg-swiss-green led-blink"></div>
+      <h1 class="text-sm font-bold tracking-[0.2em] uppercase">WoT Smart Room</h1>
+    </div>
+    <div class="h-px bg-white/20"></div>
+  </header>
+
+  <!-- Controls: Event Portal + Reset (above the room) -->
+  <div class="w-full max-w-4xl grid grid-cols-3 gap-3 mb-6">
+    <!-- Trigger Now -->
+    <div class="border border-white/10 p-4 flex flex-col justify-between">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-2">Trigger Event Now</div>
+      <div id="calendarStatus" class="text-sm font-mono text-white/50 mb-3">No upcoming events</div>
+      <button id="triggerNowBtn" onclick="triggerNow()" class="w-full px-4 py-2 text-xs font-bold tracking-[0.1em] uppercase border border-swiss-green text-swiss-green hover:bg-swiss-green/20 rounded transition-all duration-200 cursor-pointer select-none">
+        Trigger Now
+      </button>
+    </div>
+    <!-- Schedule Event -->
+    <div class="border border-white/10 p-4 flex flex-col justify-between">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-2">Schedule Event</div>
+      <div class="text-sm font-mono text-white/50 mb-3">Set event in N seconds</div>
+      <div class="flex items-center gap-2">
+        <input id="calendarDelay" type="number" min="1" placeholder="seconds" class="flex-1 px-2 py-2 text-xs font-mono bg-black border border-white/20 text-white rounded focus:border-swiss-green outline-none" value="10">
+        <button onclick="triggerScheduled()" class="px-4 py-2 text-xs font-bold tracking-[0.1em] uppercase border border-swiss-green text-swiss-green hover:bg-swiss-green/20 rounded transition-all duration-200 cursor-pointer select-none whitespace-nowrap">
+          Schedule
+        </button>
+      </div>
+    </div>
+    <!-- Reset -->
+    <div class="border border-white/10 p-4 flex flex-col justify-between">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-2">Simulation</div>
+      <div class="text-sm font-mono text-white/50 mb-3">Reset all devices to initial state</div>
+      <button onclick="resetAll()" class="w-full px-4 py-2 text-xs font-bold tracking-[0.1em] uppercase border border-red-500/50 text-red-400 hover:bg-red-500/20 rounded transition-all duration-200 cursor-pointer select-none">
+        Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- SVG Room -->
+  <div class="w-full max-w-4xl">
+    <svg id="room" viewBox="0 0 800 500" class="w-full rounded-sm border border-white/10">
+      <defs>
+        <radialGradient id="lightGlow">
+          <stop offset="0%" stop-color="#fff" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="windowLight" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffe8a0" stop-opacity="0.18"/>
+          <stop offset="60%" stop-color="#ffe8a0" stop-opacity="0.06"/>
+          <stop offset="100%" stop-color="#ffe8a0" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Room bg -->
+      <rect id="roomBg" x="0" y="0" width="800" height="500" fill="#111" class="transition-svg"/>
+
+      <!-- Floor -->
+      <rect id="floor" x="0" y="380" width="800" height="120" fill="#0a0a0a" class="transition-svg"/>
+      <line x1="0" y1="380" x2="800" y2="380" stroke="#222" stroke-width="1"/>
+
+      <!-- Window -->
+      <rect x="500" y="60" width="200" height="200" fill="#080808" stroke="#333" stroke-width="2"/>
+      <line x1="600" y1="60" x2="600" y2="260" stroke="#333" stroke-width="1"/>
+      <line x1="500" y1="160" x2="700" y2="160" stroke="#333" stroke-width="1"/>
+      <rect id="windowSky" x="502" y="62" width="96" height="96" fill="#0a0a0a" class="transition-svg"/>
+      <rect id="windowSky2" x="602" y="62" width="96" height="96" fill="#0a0a0a" class="transition-svg"/>
+      <rect id="windowSky3" x="502" y="162" width="96" height="96" fill="#0a0a0a" class="transition-svg"/>
+      <rect id="windowSky4" x="602" y="162" width="96" height="96" fill="#0a0a0a" class="transition-svg"/>
+
+      <!-- Blinds -->
+      <g id="blindsGroup" class="transition-svg">
+        <rect x="502" y="62" width="196" height="18" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="82" width="196" height="18" fill="#181818" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="102" width="196" height="18" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="122" width="196" height="18" fill="#181818" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="142" width="196" height="18" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="162" width="196" height="18" fill="#181818" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="182" width="196" height="18" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="202" width="196" height="18" fill="#181818" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="222" width="196" height="18" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect x="502" y="242" width="196" height="16" fill="#181818" stroke="#2a2a2a" stroke-width="0.5"/>
+      </g>
+
+      <!-- Stars (visible when blinds raised, lights off) -->
+      <g id="starsGroup" opacity="0" class="transition-svg">
+        <circle cx="530" cy="90" r="1.5" fill="#fff" opacity="0.7"/>
+        <circle cx="560" cy="110" r="1" fill="#fff" opacity="0.5"/>
+        <circle cx="640" cy="80" r="1.5" fill="#fff" opacity="0.8"/>
+        <circle cx="680" cy="120" r="1" fill="#fff" opacity="0.4"/>
+        <circle cx="545" cy="130" r="1" fill="#fff" opacity="0.6"/>
+        <circle cx="670" cy="190" r="1.5" fill="#fff" opacity="0.5"/>
+        <circle cx="525" cy="200" r="1" fill="#fff" opacity="0.7"/>
+        <circle cx="620" cy="100" r="2" fill="#fff" opacity="0.6"/>
+        <circle cx="660" cy="100" r="18" fill="#222"/>
+        <circle cx="654" cy="96" r="18" fill="#ddd" opacity="0.9"/>
+      </g>
+
+      <!-- Daylight in window -->
+      <g id="dayGroup" opacity="0" class="transition-svg">
+        <rect x="502" y="62" width="196" height="196" fill="#c8e8d8" opacity="0.3"/>
+      </g>
+
+      <!-- Window ambient light spill into room -->
+      <g id="windowAmbient" opacity="0" class="transition-svg">
+        <polygon points="500,260 700,260 640,380 380,380" fill="url(#windowLight)"/>
+        <polygon points="500,260 700,260 720,380 340,380" fill="#ffe8a0" opacity="0.03"/>
+        <rect x="0" y="0" width="800" height="500" fill="#ffe8a0" opacity="0.02"/>
+      </g>
+
+      <!-- Light glow -->
+      <ellipse id="lightGlowFx" cx="280" cy="60" rx="350" ry="280" fill="url(#lightGlow)" opacity="0" class="transition-svg"/>
+
+      <!-- Ceiling light -->
+      <line x1="280" y1="0" x2="280" y2="30" stroke="#333" stroke-width="2"/>
+      <rect x="264" y="28" width="32" height="6" rx="2" fill="#222" stroke="#333" stroke-width="1"/>
+      <ellipse id="bulb" cx="280" cy="40" rx="10" ry="7" fill="#1a1a1a" stroke="#333" stroke-width="1" class="transition-svg"/>
+
+      <!-- Bed -->
+      <g id="bed">
+        <rect x="60" y="260" width="260" height="130" rx="4" fill="#141414" stroke="#2a2a2a" stroke-width="1.5"/>
+        <rect x="60" y="240" width="260" height="28" rx="4" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1.5"/>
+        <rect x="70" y="272" width="240" height="108" rx="2" fill="#181818"/>
+        <ellipse cx="150" cy="292" rx="48" ry="14" fill="#222" stroke="#2a2a2a" stroke-width="0.5"/>
+        <ellipse cx="210" cy="292" rx="36" ry="12" fill="#222" stroke="#2a2a2a" stroke-width="0.5"/>
+        <rect id="blanket" x="70" y="310" width="240" height="70" rx="3" fill="#00A86B" opacity="0.2" class="transition-svg"/>
+      </g>
+
+      <!-- Person -->
+      <g id="person">
+        <circle id="head" cx="175" cy="286" r="18" fill="#c4a882" class="transition-svg"/>
+        <g id="eyesClosed" class="transition-svg">
+          <line x1="166" y1="284" x2="174" y2="284" stroke="#8a7560" stroke-width="2" stroke-linecap="round"/>
+          <line x1="178" y1="284" x2="186" y2="284" stroke="#8a7560" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g id="eyesOpen" opacity="0" class="transition-svg">
+          <circle cx="170" cy="283" r="3" fill="#111"/>
+          <circle cx="182" cy="283" r="3" fill="#111"/>
+          <circle cx="171" cy="282" r="1" fill="#fff"/>
+          <circle cx="183" cy="282" r="1" fill="#fff"/>
+        </g>
+        <path id="mouthSleep" d="M170,294 Q175,296 180,294" fill="none" stroke="#8a7560" stroke-width="1.2" stroke-linecap="round" class="transition-svg"/>
+        <path id="mouthAwake" d="M168,294 Q175,300 182,294" fill="none" stroke="#8a7560" stroke-width="1.2" stroke-linecap="round" opacity="0" class="transition-svg"/>
+        <g id="zzzGroup">
+          <text id="z1" x="202" y="270" font-size="16" font-weight="700" fill="#00A86B" opacity="0.4">z</text>
+          <text id="z2" x="218" y="254" font-size="20" font-weight="700" fill="#00A86B" opacity="0.3">z</text>
+          <text id="z3" x="238" y="234" font-size="26" font-weight="700" fill="#00A86B" opacity="0.2">z</text>
+        </g>
+      </g>
+
+      <!-- Wristband -->
+      <rect x="152" y="306" width="18" height="8" rx="4" fill="#00A86B" stroke="#006B45" stroke-width="1"/>
+      <rect id="wristbandLed" x="158" y="308" width="6" height="4" rx="1" fill="#00D486" class="led-blink"/>
+
+      <!-- Nightstand -->
+      <rect x="340" y="320" width="70" height="70" rx="2" fill="#141414" stroke="#2a2a2a" stroke-width="1"/>
+      <rect x="352" y="330" width="46" height="30" rx="2" fill="#0a0a0a" stroke="#00A86B" stroke-width="1"/>
+      <text id="clockText" x="375" y="350" text-anchor="middle" font-family="monospace" font-size="12" fill="#00A86B" font-weight="700">--</text>
+      <circle id="clockDot" cx="390" cy="336" r="3" fill="#333"/>
+
+      <!-- Coffee Machine (right of window) -->
+      <g id="coffeeMachineGroup">
+        <!-- Counter -->
+        <rect x="710" y="300" width="70" height="80" rx="2" fill="#141414" stroke="#2a2a2a" stroke-width="1"/>
+        <!-- Machine body -->
+        <rect x="720" y="270" width="50" height="30" rx="3" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1.5"/>
+        <!-- Top hopper -->
+        <rect x="727" y="260" width="36" height="14" rx="2" fill="#181818" stroke="#2a2a2a" stroke-width="1"/>
+        <!-- LED indicator -->
+        <circle id="coffeeLed" cx="755" cy="280" r="3" fill="#333" class="transition-svg"/>
+        <!-- Drip nozzle -->
+        <rect x="738" y="298" width="14" height="5" rx="1" fill="#222"/>
+        <!-- Cup under nozzle (always visible) -->
+        <rect x="735" y="308" width="20" height="16" rx="2" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1"/>
+        <rect x="753" y="311" width="5" height="9" rx="3" fill="none" stroke="#2a2a2a" stroke-width="1"/>
+        <!-- Coffee filling in cup (visible when brewing/ready) -->
+        <rect id="coffeeLiquid" x="737" y="314" width="16" height="8" rx="1" fill="#6b3a1f" opacity="0" class="transition-svg"/>
+        <!-- Steam from nozzle (visible when grinding/brewing) -->
+        <g id="coffeeSteam" opacity="0" class="transition-svg">
+          <path d="M740,306 Q738,298 742,292" fill="none" stroke="#555" stroke-width="1" stroke-linecap="round"/>
+          <path d="M745,306 Q743,296 747,290" fill="none" stroke="#555" stroke-width="1" stroke-linecap="round"/>
+          <path d="M750,306 Q748,298 752,292" fill="none" stroke="#555" stroke-width="1" stroke-linecap="round"/>
+        </g>
+      </g>
+
+      <!-- Labels -->
+      <g font-family="Helvetica Neue, sans-serif" font-size="9" fill="#555" text-anchor="middle" letter-spacing="0.1em" text-transform="uppercase">
+        <text x="600" y="280">WINDOW</text>
+        <text x="280" y="58">LIGHT</text>
+        <text x="190" y="408">BED</text>
+        <text x="375" y="408">NIGHTSTAND</text>
+        <text x="745" y="398">COFFEE</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- State Cards -->
+  <div class="w-full max-w-4xl grid grid-cols-6 gap-3 mt-6">
+    <div class="border border-white/10 p-3">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-1">Owner</div>
+      <div id="cardOwner" class="text-lg font-bold tracking-tight text-swiss-green">--</div>
+    </div>
+    <div class="border border-white/10 p-3">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-1">Lights</div>
+      <div id="cardLights" class="text-lg font-bold tracking-tight text-swiss-green">--</div>
+    </div>
+    <div class="border border-white/10 p-3">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-1">Blinds</div>
+      <div id="cardBlinds" class="text-lg font-bold tracking-tight text-swiss-green">--</div>
+    </div>
+    <div class="border border-white/10 p-3">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-1">Mattress</div>
+      <div id="cardMattress" class="text-lg font-bold tracking-tight text-swiss-green">--</div>
+    </div>
+    <div class="border border-white/10 p-3">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-1">Event Portal</div>
+      <div id="cardCalendar" class="text-lg font-bold tracking-tight text-swiss-green">--</div>
+    </div>
+    <div class="border border-white/10 p-3">
+      <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-1">Coffee</div>
+      <div id="cardCoffee" class="text-lg font-bold tracking-tight text-swiss-green">--</div>
+    </div>
+  </div>
+
+  <!-- Event Log -->
+  <div class="w-full max-w-4xl mt-6">
+    <div class="text-[10px] tracking-[0.2em] uppercase text-white/40 mb-2">Event Log</div>
+    <div id="log" class="border border-white/10 bg-black font-mono text-xs text-white/50 h-36 overflow-y-auto p-3 space-y-1"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full max-w-4xl mt-6 pt-4 border-t border-white/10">
+    <div class="flex justify-between text-[10px] tracking-[0.15em] uppercase text-white/20">
+      <span>node-wot servient</span>
+      <span id="connStatus">connecting</span>
+    </div>
+  </footer>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const log = $('#log');
+const state = {};
+const prevDisplay = {};
+let coffeeServed = false;
+
+function addLog(msg) {
+  const t = new Date().toLocaleTimeString('en-GB');
+  const div = document.createElement('div');
+  div.className = 'log-enter';
+  div.innerHTML = `<span class="text-white/20">${t}</span> <span class="text-swiss-green">${msg}</span>`;
+  log.prepend(div);
+  while (log.children.length > 80) log.removeChild(log.lastChild);
+}
+
+function updateRoom() {
+  try {
+  const s = state;
+  const labels = { wristband: 'Owner', eventPortal: 'Event Portal', lights: 'Lights', blinds: 'Blinds', mattress: 'Mattress', coffeeMachine: 'Coffee' };
+  for (const k of Object.keys(s)) {
+    if (prevDisplay[k] !== undefined && prevDisplay[k] !== s[k]) {
+      addLog(`${labels[k] || k}: ${prevDisplay[k]} \u2192 ${s[k]}`);
+    }
+  }
+  Object.assign(prevDisplay, s);
+
+  const lightsOn = s.lights === 'on';
+  const blindsUp = s.blinds === 'raised';
+  const asleep = s.wristband === 'asleep';
+  const vibrating = s.mattress === 'vibrating';
+
+  // Room brightness adjusts based on light sources
+  const hasAmbient = blindsUp;
+  const roomBg = lightsOn ? (hasAmbient ? '#222' : '#1c1c1c') : (hasAmbient ? '#151515' : '#111');
+  const floorBg = lightsOn ? (hasAmbient ? '#1a1a1a' : '#141414') : (hasAmbient ? '#0f0f0f' : '#0a0a0a');
+  $('#roomBg').setAttribute('fill', roomBg);
+  $('#floor').setAttribute('fill', floorBg);
+  $('#bulb').setAttribute('fill', lightsOn ? '#fff' : '#1a1a1a');
+  $('#bulb').setAttribute('stroke', lightsOn ? '#ddd' : '#333');
+  $('#lightGlowFx').setAttribute('opacity', lightsOn ? '1' : '0');
+  $('#blindsGroup').style.display = blindsUp ? 'none' : 'block';
+
+  const skyColor = blindsUp ? (lightsOn ? '#e8f4ec' : '#0a0a18') : '#080808';
+  ['#windowSky','#windowSky2','#windowSky3','#windowSky4'].forEach(id => $(id).setAttribute('fill', skyColor));
+  $('#starsGroup').setAttribute('opacity', (blindsUp && !lightsOn) ? '1' : '0');
+  $('#dayGroup').setAttribute('opacity', (blindsUp && lightsOn) ? '1' : '0');
+
+  // Window ambient light spill — warm sunlight when blinds are up
+  $('#windowAmbient').setAttribute('opacity', blindsUp ? (lightsOn ? '0.7' : '0.4') : '0');
+
+  // Bed vibration
+  $('#bed').classList.toggle('vibrating', vibrating);
+
+  const headY = asleep ? 286 : 268;
+  $('#head').setAttribute('cy', headY);
+  $('#eyesClosed').setAttribute('opacity', asleep ? '1' : '0');
+  $('#eyesClosed').querySelectorAll('line').forEach(l => { l.setAttribute('y1', headY - 2); l.setAttribute('y2', headY - 2); });
+  $('#eyesOpen').setAttribute('opacity', asleep ? '0' : '1');
+  $('#eyesOpen').querySelectorAll('circle').forEach(c => {
+    const baseY = headY - 3;
+    c.setAttribute('cy', c.getAttribute('r') === '3' ? baseY : baseY - 1);
+  });
+  $('#mouthSleep').setAttribute('d', `M170,${headY+8} Q175,${headY+10} 180,${headY+8}`);
+  $('#mouthSleep').setAttribute('opacity', asleep ? '1' : '0');
+  $('#mouthAwake').setAttribute('d', `M168,${headY+8} Q175,${headY+14} 182,${headY+8}`);
+  $('#mouthAwake').setAttribute('opacity', asleep ? '0' : '1');
+  $('#zzzGroup').style.display = asleep ? 'block' : 'none';
+
+  if (asleep) {
+    $('#blanket').setAttribute('y', '300'); $('#blanket').setAttribute('height', '80'); $('#blanket').setAttribute('opacity', '0.25');
+  } else {
+    $('#blanket').setAttribute('y', '340'); $('#blanket').setAttribute('height', '36'); $('#blanket').setAttribute('opacity', '0.15');
+  }
+
+  const calText = s.eventPortal === 'now' ? 'NOW' : String(s.eventPortal || 'none').toUpperCase().slice(0, 5);
+  $('#clockText').textContent = calText;
+  $('#clockDot').setAttribute('fill', s.eventPortal === 'now' ? '#00D486' : '#333');
+  s.eventPortal === 'now' ? $('#clockDot').classList.add('led-blink') : $('#clockDot').classList.remove('led-blink');
+
+  $('#cardOwner').textContent = s.wristband;
+  $('#cardLights').textContent = s.lights;
+  $('#cardLights').style.color = lightsOn ? '#fbbf24' : '';
+  $('#cardBlinds').textContent = s.blinds;
+  $('#cardMattress').textContent = s.mattress;
+  $('#cardMattress').style.color = vibrating ? '#f97316' : '';
+  $('#cardCalendar').textContent = s.eventPortal;
+
+  // Coffee machine
+  const coffeeState = s.coffeeMachine || 'idle';
+  $('#cardCoffee').textContent = coffeeState;
+  const coffeeActive = coffeeState !== 'idle';
+  $('#cardCoffee').style.color = coffeeActive ? '#f59e0b' : '';
+
+  // Coffee machine SVG visuals
+  const isGrinding = coffeeState === 'grinding';
+  const isBrewing = coffeeState === 'brewing';
+  const isReady = coffeeState === 'ready';
+  const isCleaning = coffeeState === 'cleaning';
+  if (isReady) coffeeServed = true;
+  if (isCleaning) coffeeServed = false;
+
+  $('#coffeeLed').setAttribute('fill', coffeeActive ? (isReady ? '#00D486' : '#f59e0b') : '#333');
+  if (coffeeActive) { $('#coffeeLed').classList.add('led-blink'); } else { $('#coffeeLed').classList.remove('led-blink'); }
+  $('#coffeeSteam').setAttribute('opacity', (isGrinding || isBrewing) ? '1' : '0');
+  $('#coffeeLiquid').setAttribute('opacity', (isBrewing || isReady || coffeeServed) ? '1' : '0');
+  if (isGrinding || isCleaning) { $('#coffeeMachineGroup').classList.add('vibrating'); } else { $('#coffeeMachineGroup').classList.remove('vibrating'); }
+
+  // Update event portal status
+  const hasEvent = s.eventPortal === 'now';
+  const hasScheduled = !isNaN(Number(s.eventPortal)) && Number(s.eventPortal) > 0;
+  $('#calendarStatus').textContent = hasEvent ? 'Upcoming event: NOW' : (hasScheduled ? `Event in ${s.eventPortal}s` : 'No upcoming events');
+  $('#calendarStatus').style.color = (hasEvent || hasScheduled) ? '#00A86B' : '';
+  $('#triggerNowBtn').textContent = hasEvent ? 'Clear Event' : 'Trigger Now';
+  } catch(err) { console.error('updateRoom error:', err); addLog('ERROR: ' + err.message); }
+}
+
+const WOT_BASE = `${location.protocol}//${location.hostname}:1180`;
+
+// WoT observable property long-polling
+const observableProperties = [
+  { thing: 'wristband', property: 'ownerState', stateKey: 'wristband' },
+  { thing: 'event-portal', property: 'upcoming', stateKey: 'eventPortal' },
+  { thing: 'lights', property: 'state', stateKey: 'lights' },
+  { thing: 'blinds', property: 'state', stateKey: 'blinds' },
+  { thing: 'mattress', property: 'state', stateKey: 'mattress' },
+  { thing: 'coffee-machine', property: 'state', stateKey: 'coffeeMachine' },
+];
+
+// Long-poll a single observable property endpoint
+function observeProperty(thing, property, stateKey) {
+  const url = `${WOT_BASE}/${thing}/properties/${property}/observable`;
+  const controller = new AbortController();
+
+  async function poll() {
+    while (true) {
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const value = await res.json();
+        state[stateKey] = value;
+        updateRoom();
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+  }
+
+  poll();
+  return controller;
+}
+
+// Initial state fetch via readProperty, then start observing
+async function connect() {
+  $('#connStatus').textContent = 'connecting';
+
+  // Fetch initial state for all properties via WoT readProperty
+  try {
+    const results = await Promise.all(observableProperties.map(async ({ thing, property, stateKey }) => {
+      const res = await fetch(`${WOT_BASE}/${thing}/properties/${property}`);
+      const value = await res.json();
+      return { stateKey, value };
+    }));
+    results.forEach(({ stateKey, value }) => { state[stateKey] = value; });
+
+    updateRoom();
+    $('#connStatus').textContent = 'live (WoT observe)';
+    addLog('Connected via WoT observeProperty (longpoll)');
+
+    // Start long-polling each observable property
+    observableProperties.forEach(({ thing, property, stateKey }) => {
+      observeProperty(thing, property, stateKey);
+    });
+
+  } catch (e) {
+    $('#connStatus').textContent = 'reconnecting';
+    addLog(`Connection failed: ${e.message}. Retrying...`);
+    setTimeout(connect, 3000);
+  }
+}
+
+function triggerNow() {
+  if (state.eventPortal === 'now') {
+    // Clear event
+    fetch('/api/trigger-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify('none') })
+      .then(() => addLog('Event Portal: cleared'))
+      .catch(e => addLog(`Failed: ${e.message}`));
+  } else {
+    fetch('/api/trigger-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify('now') })
+      .then(() => addLog('Event Portal: triggered NOW'))
+      .catch(e => addLog(`Failed: ${e.message}`));
+  }
+}
+
+function triggerScheduled() {
+  const delay = parseInt($('#calendarDelay').value);
+  if (!delay || delay <= 0) {
+    addLog('Please enter a number of seconds greater than 0');
+    return;
+  }
+  fetch('/api/trigger-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(delay) })
+    .then(() => addLog(`Event Portal: scheduled in ${delay}s`))
+    .catch(e => addLog(`Failed: ${e.message}`));
+}
+
+function resetAll() {
+  coffeeServed = false;
+  fetch('/api/reset', { method: 'POST' })
+    .then(() => addLog('All devices reset'))
+    .catch(e => addLog(`Reset failed: ${e.message}`));
+}
+
+connect();
+</script>
+</body>
+</html>
